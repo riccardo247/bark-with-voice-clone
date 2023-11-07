@@ -1,3 +1,7 @@
+import sys
+sys.path.append("/content/hubert")
+sys.path.append("/content/bark/")
+
 from bark_hubert_quantizer.hubert_manager import HuBERTManager
 from bark_hubert_quantizer.pre_kmeans_hubert import CustomHubert
 from bark_hubert_quantizer.customtokenizer import CustomTokenizer
@@ -6,10 +10,12 @@ import torchaudio
 import os
 import numpy as np
 import torch
+import sys
+
 
 max_duration_sec = 15.1 # the maximum allowed duration in seconds
 device = "cuda"
-path = "/finetune/data"
+path = "data"
 SAMPLE_RATE = 24_000
 CHANNELS = 1
 
@@ -17,8 +23,8 @@ hubert_manager = HuBERTManager()
 hubert_manager.make_sure_hubert_installed()
 hubert_manager.make_sure_tokenizer_installed()
 
-hubert_path = '/finetune/data/models/hubert/hubert.pt'
-hubert_tokenizer_path = '/finetune/data/models/hubert/tokenizer.pth'
+hubert_path = 'data/models/hubert/hubert.pt'
+hubert_tokenizer_path = 'data/models/hubert/tokenizer.pth'
 
 # Load the HuBERT model
 hubert_model = CustomHubert(checkpoint_path=hubert_path).to(device)
