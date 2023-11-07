@@ -326,8 +326,10 @@ def finetune(model_type):
   ##
   ckpt_path = None
   device="cuda"
-  #model_type = "text"
-  model, tokenizer = _load_model(ckpt_path, device, use_small=False, model_type=model_type)
+
+  model = _load_model(ckpt_path, device, use_small=False, model_type=model_type)
+  if model_type == "text":
+      model, tokenizer = model
   
   ##
   learning_rate = 1e-4
