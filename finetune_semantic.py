@@ -32,7 +32,7 @@ from utils.lora import convert_linear_layer_to_lora, only_optimize_lora_paramete
 train_batch_size = 8
 eval_batch_size = 8
 grad_accum = 2
-ckpt_path = 'data/models/text_2.pt'
+ckpt_path = None #'data/models/text_2.pt'
 model_type = "text"
 
 logging_dir = 'logs/'
@@ -302,7 +302,7 @@ class TtsCollater():
             'semantic_tokens': torch.stack(semantic_tokens).contiguous()
         }
 
-def finetune():
+def finetune(model_type):
   global max_train_steps
   global num_train_epochs
   accelerator = Accelerator(
@@ -320,7 +320,7 @@ def finetune():
   ##
   ckpt_path = None
   device="cuda"
-  model_type = "text"
+  #model_type = "text"
   model, tokenizer = _load_model(ckpt_path, device, use_small=False, model_type=model_type)
   
   ##
@@ -499,23 +499,66 @@ def finetune():
               continue
   
           with accelerator.accumulate(model):
-              targets = batch['semantic_tokens'][:, 1:].contiguous()
-  
-              # Remove the last semantic token from the inputs since there is no target for it.
-              semantic_inputs = batch['semantic_tokens'][:, :-1]
-              #print(f"semantic inputs: {semantic_inputs.shape}, targets: {targets.shape}")
-              # Combine the text and semantic tokens and feed them into the model.
-              inputs = torch.cat([batch['input_ids'], semantic_inputs], dim=1)
-              #print(f"input shape: {inputs.shape}, {batch['input_ids'].shape}, {semantic_inputs.shape}")
-              logits = model(inputs, training=True)
-              #print(logits)
-              # We're only interested in the logits for the semantic tokens, so we ignore the logits for the input text tokens.
-              semantic_logits = logits[:, batch['input_ids'].size(1):].contiguous()
-              #print(f"logits shape: {logits.shape}")
-              #print(f"semantic logits shape: {semantic_logits.shape}")
-              #print(f" batch shape: {batch['input_ids'].shape}")
-              # Compute the loss.
-              loss = criterion(semantic_logits.view(-1, model.config.output_vocab_size), targets.view(-1))
+              if model_type =='text':
+                  targets = batch['semantic_tokens'][:, 1:].contiguous()
+                  # Remove the last semantic token from the inputs since there is no target for it.
+                  semantic_inputs = batch['semantic_tokens'][:, :-1]
+                  #print(f"semantic inputs: {semantic_inputs.shape}, targets: {targets.shape}")
+                  # Combine the text and semantic tokens and feed them into the model.
+                  inputs = torch.cat([batch['input_ids'], semantic_inputs], dim=1)
+                  #print(f"input shape: {inputs.shape}, {batch['input_ids'].shape}, {semantic_inputs.shape}")
+                  logits = model(inputs, training=True)
+                  #print(logits)
+                  # We're only interested in the logits for the semantic tokens, so we ignore the logits for the input text tokens.
+                  semantic_logits = logits[:, batch['input_ids'].size(1):].contiguous()
+                  #print(f"logits shape: {logits.shape}")
+                  #print(f"semantic logits shape: {semantic_logits.shape}")
+                  #print(f" batch shape: {batch['input_ids'].shape}")
+                  # Compute the loss.
+                  loss = criterion(semantic_logits.view(-1, model.config.output_vocab_size), targets.view(-1))
+              elif model_type =='coarse':
+                  targets = batch['coarse_tokens'][:, 1:].contiguous()
+    
+                  # Remove the last coarse token from the inputs since there is no target for it.
+                  coarse_inputs = batch['coarse_tokens'][:, :-1]
+    
+                  # Combine the semantic tokens and coarse tokens and feed them into the model.
+                  inputs = torch.cat([batch['semantic_tokens'], coarse_inputs], dim=1)
+                  logits = model(inputs, training=True)
+    
+                  # We're only interested in the logits for the coarse tokens, so we ignore the logits for the input text tokens.
+                  coarse_logits = logits[:, batch['semantic_tokens'].size(1):].contiguous()
+    
+                  # Compute the loss.
+                  loss = criterion(coarse_logits.view(-1, model.config.output_vocab_size), targets.view(-1))
+    
+                  if semantic_cross_entropy_loss_weight > 0 and semantic_cross_entropy_loss_weight is not None:
+                    semantic_logits = logits[:, :batch['semantic_tokens'].size(1)].contiguous()
+                    semantic_loss = criterion(
+                        semantic_logits.view(-1, model.config.input_vocab_size),
+                        batch['semantic_tokens'].view(-1),
+                    )
+                    num_semantic_logits = semantic_logits.size(1)
+                    num_coarse_logits = coarse_logits.size(1)
+                    loss = (
+                        semantic_loss * num_semantic_logits * semantic_cross_entropy_loss_weight +
+                        loss * num_coarse_logits
+                    ) / (num_semantic_logits + num_coarse_logits)
+                elif model_type  =='fine':
+                    fine_targets_7 = batch['fine_tokens'][:, :, 6]
+                    fine_tokens_input_7 = torch.cat([batch['fine_tokens'][:, :, :6], torch.zeros_like(batch['fine_tokens'][:, :, 6:])], dim=2)
+                    fine_targets_8 = batch['fine_tokens'][:, :, 7]
+                    fine_tokens_input_8 = torch.cat([batch['fine_tokens'][:, :, :7], torch.zeros_like(batch['fine_tokens'][:, :, 7:])], dim=2)
+        
+                    # Forward pass
+                    logits_7 = model(6, fine_tokens_input_7)
+                    logits_8 = model(7, fine_tokens_input_8)
+        
+                    # Calculate the loss
+                    loss_7 = criterion(logits_7.view(-1, model.config.output_vocab_size), fine_targets_7.view(-1))
+                    loss_8 = criterion(logits_8.view(-1, model.config.output_vocab_size), fine_targets_8.view(-1))
+        
+                    loss = (loss_7 + loss_8) / 2
   
               accelerator.backward(loss)
               if accelerator.sync_gradients:
@@ -561,4 +604,8 @@ def finetune():
   accelerator.end_training()
 
 if __name__ == '__main__':
-    finetune()
+    if len(sys.argv) >= 2:
+        model_type = sys.argv[1]
+        finetune(model_type)
+    else:
+        print("pass model_type ['text', 'coarse', 'fine']"
