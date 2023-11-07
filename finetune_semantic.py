@@ -240,8 +240,57 @@ def load_filepaths_and_text(filename, split="|"):
         # for j in range(len(filepaths_and_text)):
         #     filepaths_and_text[j][0] = os.path.join(base, filepaths_and_text[j][0])
     return filepaths_and_text
-
+    
 class TtsDataset(torch.utils.data.Dataset):
+    def __init__(self, opt):
+        self.path = os.path.dirname(opt['path'])
+        self.mode = opt['mode']
+        self.audiopaths_and_text = load_filepaths_and_text(os.path.join(opt['path'] , opt['mode'] + '.txt'))
+
+    def __getitem__(self, index):
+        audiopath_and_text = self.audiopaths_and_text[index]
+        audiopath = audiopath_and_text[0]
+
+        tokens = np.load(audiopath.replace('.wav', '.npz').replace('wavs', 'tokens'))
+        semantic_tokens = tokens['semantic']
+        coarse_tokens = _flatten_codebooks(tokens['coarse'], offset_size=CODEBOOK_SIZE) + SEMANTIC_VOCAB_SIZE
+
+        return torch.from_numpy(semantic_tokens), torch.from_numpy(coarse_tokens)
+
+    def __len__(self):
+        return len(self.audiopaths_and_text)
+        
+class TtsCollater():
+    def __init__(self):
+        pass
+    def __call__(self, batch):
+        max_semantic_len = MAX_SEMANTIC_LEN
+        max_coarse_len = MAX_COARSE_LEN
+        semantic_to_coarse_ratio = COARSE_RATE_HZ / SEMANTIC_RATE_HZ * N_COARSE_CODEBOOKS
+        semantic_tokens = []
+        coarse_tokens = []
+
+        for b in batch:
+            semantic_tokens_, coarse_tokens_ = b
+            start_idx = None
+            if len(semantic_tokens_) > max_semantic_len:
+                start_idx = np.random.randint(0, len(semantic_tokens_) - max_semantic_len + 1)
+                semantic_tokens_ = semantic_tokens_[start_idx:start_idx+max_semantic_len]
+            semantic_tokens_ = F.pad(semantic_tokens_, (0, max_semantic_len-len(semantic_tokens_)), value=COARSE_SEMANTIC_PAD_TOKEN)
+            semantic_tokens_ = torch.cat([semantic_tokens_, torch.tensor([COARSE_INFER_TOKEN])])
+            semantic_tokens.append(semantic_tokens_)
+
+            if start_idx is not None:
+                start_idx_coarse = int(start_idx * semantic_to_coarse_ratio) 
+                coarse_tokens_ = coarse_tokens_[start_idx_coarse:start_idx_coarse+max_coarse_len]
+            coarse_tokens_ = F.pad(coarse_tokens_, (0, max_coarse_len-len(coarse_tokens_)), value=COARSE_SEMANTIC_PAD_TOKEN)
+            coarse_tokens.append(coarse_tokens_)
+
+        return {
+            'semantic_tokens': torch.stack(semantic_tokens).contiguous(),
+            'coarse_tokens': torch.stack(coarse_tokens).contiguous()
+        }        
+class TtsDataset_text(torch.utils.data.Dataset):
     def __init__(self, opt):
         self.path = os.path.dirname(opt['path'])
         self.mode = opt['mode']
@@ -279,7 +328,7 @@ class TtsDataset(torch.utils.data.Dataset):
         return len(self.audiopaths_and_text)
 
 
-class TtsCollater():
+class TtsCollater_text():
     def __init__(self):
         pass
     def __call__(self, batch):
@@ -409,6 +458,19 @@ def finetune(model_type):
           'tokenizer': tokenizer,
           'mode': 'valid',
       }
+      train_dataset = TtsDataset_text(opt_train)
+      validation_dataset = TtsDataset_text(opt_val)
+      train_dataloader = torch.utils.data.DataLoader(
+          train_dataset,
+          batch_size=train_batch_size,
+          collate_fn=TtsCollater_text(),
+      )
+  
+      validation_dataloader = torch.utils.data.DataLoader(
+          validation_dataset,
+          batch_size=eval_batch_size,
+          collate_fn=TtsCollater_text(),
+      )
   else:
       opt_train = {
         'path': dataset_path,
@@ -420,20 +482,20 @@ def finetune(model_type):
         'mode': 'valid',
     }
   
-  train_dataset = TtsDataset(opt_train)
-  validation_dataset = TtsDataset(opt_val)
+      train_dataset = TtsDataset(opt_train)
+      validation_dataset = TtsDataset(opt_val)
   
-  train_dataloader = torch.utils.data.DataLoader(
-      train_dataset,
-      batch_size=train_batch_size,
-      collate_fn=TtsCollater(),
-  )
+      train_dataloader = torch.utils.data.DataLoader(
+          train_dataset,
+          batch_size=train_batch_size,
+          collate_fn=TtsCollater(),
+      )
   
-  validation_dataloader = torch.utils.data.DataLoader(
-      validation_dataset,
-      batch_size=eval_batch_size,
-      collate_fn=TtsCollater(),
-  )
+      validation_dataloader = torch.utils.data.DataLoader(
+          validation_dataset,
+          batch_size=eval_batch_size,
+          collate_fn=TtsCollater(),
+      )
   
   criterion = torch.nn.CrossEntropyLoss() #ignore_index=SEMANTIC_PAD_TOKEN)
   
