@@ -303,7 +303,7 @@ class TtsCollater():
         }
 
 def finetune():
-    global max_train_steps
+  global max_train_steps
   accelerator = Accelerator(
       gradient_accumulation_steps=grad_accum,
       mixed_precision=mixed_precision,
