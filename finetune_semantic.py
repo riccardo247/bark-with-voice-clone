@@ -232,6 +232,15 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
         return model, tokenizer
     return model
 
+def _flatten_codebooks(arr, offset_size=CODEBOOK_SIZE):
+    assert len(arr.shape) == 2
+    arr = arr.copy()
+    if offset_size is not None:
+        for n in range(1, arr.shape[0]):
+            arr[n, :] += offset_size * n
+    flat_arr = arr.ravel("F")
+    return flat_arr
+
 
 def load_filepaths_and_text(filename, split="|"):
     with open(filename, encoding='utf-8', errors='ignore') as f:
