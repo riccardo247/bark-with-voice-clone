@@ -614,4 +614,4 @@ if __name__ == '__main__':
         model_type = sys.argv[1]
         finetune(model_type)
     else:
-        print("pass model_type ['text', 'coarse', 'fine']"
+        print("missing model_type ['text', 'coarse', 'fine']")
