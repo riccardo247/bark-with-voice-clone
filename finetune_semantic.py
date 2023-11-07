@@ -397,17 +397,28 @@ def finetune(model_type):
   )
   
   dataset_path = '/finetune/'
-  opt_train = {
-      'path': dataset_path,
-      'tokenizer': tokenizer,
-      'mode': 'train',
-  }
-  
-  opt_val = {
-      'path': dataset_path,
-      'tokenizer': tokenizer,
-      'mode': 'valid',
-  }
+  if model_type=='text':
+      opt_train = {
+          'path': dataset_path,
+          'tokenizer': tokenizer,
+          'mode': 'train',
+      }
+      
+      opt_val = {
+          'path': dataset_path,
+          'tokenizer': tokenizer,
+          'mode': 'valid',
+      }
+  else:
+      opt_train = {
+        'path': dataset_path,
+        'mode': 'train',
+    }
+
+      opt_val = {
+        'path': dataset_path,
+        'mode': 'valid',
+    }
   
   train_dataset = TtsDataset(opt_train)
   validation_dataset = TtsDataset(opt_val)
@@ -461,7 +472,7 @@ def finetune(model_type):
   # We need to initialize the trackers we use, and also store our configuration.
   # The trackers initializes automatically on the main process.
   if accelerator.is_main_process:
-      accelerator.init_trackers("bark_semantic", config={})
+      accelerator.init_trackers(f"bark_{model_type}", config={})
   
   # Train!
   total_batch_size = train_batch_size * accelerator.num_processes * grad_accum
