@@ -17,7 +17,7 @@ source /ve/bark/bin/activate
 pip install accelerate torchaudio git+https://github.com/huggingface/transformers.git
 pip install --upgrade "diffusers[torch]"
 pip install funcy 
-pip install encoded=0.1.1
+pip install encodec==0.1.1
 
 mkdir /finetune
 # Clone the required repositories
@@ -48,8 +48,8 @@ git clone https://github.com/riccardo247/SALMONN
 #get list of files was, text
 python3 /finetune/SALMONN/get_files_list.py /finetune/audio /finetune/file_list.txt
 #copy for train and valid. TODO split train valid
-cp /finetune/file_list.txt /finetune/data/train_valid.txt
-cp /finetune/file_list.txt /finetune/data/valid_valid.txt
+cp /finetune/file_list.txt /finetune/train_valid.txt
+cp /finetune/file_list.txt /finetune/valid_valid.txt
 #encode files
 python3 /finetune/bark_with_voice_clone/encode_files.py
 
