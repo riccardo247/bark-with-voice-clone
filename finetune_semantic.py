@@ -245,13 +245,24 @@ class TtsDataset(torch.utils.data.Dataset):
     def __init__(self, opt):
         self.path = os.path.dirname(opt['path'])
         self.mode = opt['mode']
-        self.audiopaths_and_text = load_filepaths_and_text(os.path.join(opt['path'] , opt['mode'] + '.txt'))
+        self.audiopaths_and_text = load_filepaths_and_text(os.path.join(opt['path'] , opt['mode'] + '_valid.txt'))
 
     def __getitem__(self, index):
         audiopath_and_text = self.audiopaths_and_text[index]
         audiopath = audiopath_and_text[0]
+        # Split the path into a head and a tail
+        head, tail = os.path.split(audiopath)
 
-        tokens = np.load(audiopath.replace('.wav', '.npz').replace('wavs', 'tokens'))
+        # Now split the head part to modify the last directory
+        head, last_dir = os.path.split(head)
+
+        # Append the modified last directory to the head
+        new_last_dir = last_dir + '_tokens'
+        new_head = os.path.join(head, new_last_dir)
+
+        # Join the new head with the tail
+        tokens_path = os.path.join(new_head, tail)
+        tokens = np.load(tokens_path.replace('.wav', '.npz'))
         semantic_tokens = tokens['semantic']
         coarse_tokens = _flatten_codebooks(tokens['coarse'], offset_size=CODEBOOK_SIZE) + SEMANTIC_VOCAB_SIZE
 
