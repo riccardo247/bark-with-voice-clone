@@ -24,21 +24,21 @@ import torchaudio
 import os
 import numpy as np
 import torch
-from bark_with_voice_clone.bark.model import GPTConfig, GPT
-from bark_with_voice_clone.bark.model_fine import FineGPT, FineGPTConfig
+from bark.model import GPTConfig, GPT
+from bark.model_fine import FineGPT, FineGPTConfig
 from utils.bitsandbytes import BitsAndBytesConfig, importlib_metadata, get_keys_to_not_convert, replace_with_bnb_linear, set_module_quantized_tensor_to_device
 from utils.lora import convert_linear_layer_to_lora, only_optimize_lora_parameters, convert_lora_to_linear_layer
 
 train_batch_size = 8
 eval_batch_size = 8
 grad_accum = 2
-ckpt_path = '/finetune/models/text_2.pt'
+ckpt_path = 'data/models/text_2.pt'
 model_type = "text"
 
 logging_dir = 'logs/'
 log_with = 'wandb'
-hubert_path = '/finetune/data/models/hubert/hubert.pt'
-hubert_tokenizer_path = '/finetune/data/models/hubert/tokenizer.pth'
+hubert_path = 'data/models/hubert/hubert.pt'
+hubert_tokenizer_path = 'data/models/hubert/tokenizer.pth'
 
 output_dir = '/finetune/semantic_output/'
 resume_from_checkpoint = None
@@ -57,8 +57,7 @@ lora_dropout = 0.1
 lora_module_name = 'transformer.h'
 optimize_lora_params_only = False
 
-learning_rate = 1e-4
-scale_lr = False
+
 use_8bit_adam = False
 adam_beta1 = 0.9
 adam_beta2 = 0.999
@@ -323,6 +322,8 @@ def finetune():
   model, tokenizer = _load_model(ckpt_path, device, use_small=False, model_type=model_type)
   
   ##
+  learning_rate = 1e-4
+  scale_lr = False
   if scale_lr:
       learning_rate = (
           learning_rate * grad_accum * train_batch_size * accelerator.num_processes
