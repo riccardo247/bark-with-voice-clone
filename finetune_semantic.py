@@ -303,6 +303,7 @@ class TtsCollater():
         }
 
 def finetune():
+    global max_train_steps
   accelerator = Accelerator(
       gradient_accumulation_steps=grad_accum,
       mixed_precision=mixed_precision,
@@ -501,7 +502,7 @@ def finetune():
   
               # Remove the last semantic token from the inputs since there is no target for it.
               semantic_inputs = batch['semantic_tokens'][:, :-1]
-              print(f"semantic inputs: {semantic_inputs.shape}, targets: {targets.shape}")
+              #print(f"semantic inputs: {semantic_inputs.shape}, targets: {targets.shape}")
               # Combine the text and semantic tokens and feed them into the model.
               inputs = torch.cat([batch['input_ids'], semantic_inputs], dim=1)
               #print(f"input shape: {inputs.shape}, {batch['input_ids'].shape}, {semantic_inputs.shape}")
@@ -510,10 +511,9 @@ def finetune():
               # We're only interested in the logits for the semantic tokens, so we ignore the logits for the input text tokens.
               semantic_logits = logits[:, batch['input_ids'].size(1):].contiguous()
               #print(f"logits shape: {logits.shape}")
-              print(f"semantic logits shape: {semantic_logits.shape}")
-              print(f" batch shape: {batch['input_ids'].shape}")
+              #print(f"semantic logits shape: {semantic_logits.shape}")
+              #print(f" batch shape: {batch['input_ids'].shape}")
               # Compute the loss.
-              #loss = criterion(semantic_logits.view(-1, model.config.output_vocab_size), targets.view(-1))
               loss = criterion(semantic_logits.view(-1, model.config.output_vocab_size), targets.view(-1))
   
               accelerator.backward(loss)
