@@ -40,7 +40,7 @@ log_with = 'wandb'
 hubert_path = 'data/models/hubert/hubert.pt'
 hubert_tokenizer_path = 'data/models/hubert/tokenizer.pth'
 
-output_dir = '/finetune/semantic_output/'
+
 resume_from_checkpoint = None
 
 checkpointing_steps = 1000
@@ -312,7 +312,13 @@ def finetune(model_type):
       project_dir=logging_dir,
   )
   device = accelerator.device
-  
+  if model_type=='text':
+      output_dir = '/finetune/semantic_output/'
+  elif model_type=='coarse':
+      output_dir = '/finetune/coarse_output/'
+  elif model_type=='fine':
+      output_dir='/finetune/fine_output/'
+      
   os.makedirs(output_dir, exist_ok=True)
   
   set_seed(12345)
