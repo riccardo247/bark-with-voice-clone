@@ -4,6 +4,8 @@
 # Exit script if any command fails
 set -e
 
+export BB_ID=''
+export BB_KEY=''
 # Create the virtual environment in /ve/bark
 mkdir -p /ve/bark
 python3 -m venv /ve/bark
@@ -14,7 +16,8 @@ source /ve/bark/bin/activate
 # Install libraries with pip install
 pip install accelerate torchaudio git+https://github.com/huggingface/transformers.git
 pip install --upgrade "diffusers[torch]"
-pip install funcy encoded
+pip install funcy 
+pip install encoded=0.1.1
 
 mkdir /finetune
 # Clone the required repositories
@@ -28,7 +31,7 @@ git clone https://github.com/suno-ai/bark /finetune/bark
 # Download and install B2 Command Line Tool
 wget -P /finetune/ https://github.com/Backblaze/B2_Command_Line_Tool/releases/download/v3.11.0/b2-3.11.0.tar.gz 
 tar -xzvf /finetune/b2-3.11.0.tar.gz
-cd /finetune/b2-3.11.0
+cd b2-3.11.0
 python3 setup.py install
 
 # Authorize B2 account
@@ -43,7 +46,7 @@ git clone https://github.com/riccardo247/SALMONN
 
 #
 #get list of files was, text
-python3 /finetune/SALMONN/get_files_list.py
+python3 /finetune/SALMONN/get_files_list.py /finetune/audio /finetune/file_list.txt
 #copy for train and valid. TODO split train valid
 cp /finetune/file_list.txt /finetune/data/train_valid.txt
 cp /finetune/file_list.txt /finetune/data/valid_valid.txt
