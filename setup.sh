@@ -44,6 +44,9 @@ git clone https://github.com/riccardo247/SALMONN
 #
 #get list of files was, text
 python3 /finetune/SALMONN/get_files_list.py
+#copy for train and valid. TODO split train valid
+cp /finetune/file_list.txt /finetune/data/train_valid.txt
+cp /finetune/file_list.txt /finetune/data/valid_valid.txt
 #encode files
 python3 /finetune/bark_with_voice_clone/encode_files.py
 
