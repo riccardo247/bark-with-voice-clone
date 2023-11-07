@@ -550,7 +550,7 @@ def finetune(model_type):
                         semantic_loss * num_semantic_logits * semantic_cross_entropy_loss_weight +
                         loss * num_coarse_logits
                     ) / (num_semantic_logits + num_coarse_logits)
-                elif model_type  =='fine':
+              elif model_type  =='fine':
                     fine_targets_7 = batch['fine_tokens'][:, :, 6]
                     fine_tokens_input_7 = torch.cat([batch['fine_tokens'][:, :, :6], torch.zeros_like(batch['fine_tokens'][:, :, 6:])], dim=2)
                     fine_targets_8 = batch['fine_tokens'][:, :, 7]
