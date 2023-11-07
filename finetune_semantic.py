@@ -102,8 +102,8 @@ CHANNELS = 1
 
 
 sys.path.append("/finetune/bark_with_voice_clone")
-sys.path.append("/content/hubert")
-sys.path.append("/content/bark/")
+sys.path.append("/finetune/hubert")
+sys.path.append("/finetune/bark/")
 
 logger = logging.getLogger("semantic")
 USE_SMALL_MODELS = os.environ.get("SERP_USE_SMALL_MODELS", False)
@@ -386,7 +386,7 @@ def finetune():
       eps=adam_epsilon,
   )
   
-  dataset_path = '/content/data/'
+  dataset_path = '/finetune/'
   opt_train = {
       'path': dataset_path,
       'tokenizer': tokenizer,
