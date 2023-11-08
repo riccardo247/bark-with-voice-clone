@@ -479,6 +479,7 @@ def finetune(model_type):
   
   dataset_path = '/finetune/'
   if model_type=='text':
+      print(f"loading TtsDataset_text for text")
       opt_train = {
           'path': dataset_path,
           'tokenizer': tokenizer,
@@ -504,6 +505,7 @@ def finetune(model_type):
           collate_fn=TtsCollater_text(),
       )
   else:
+      print(f"loading TtsDataset for coarse")
       opt_train = {
         'path': dataset_path,
         'mode': 'train',
@@ -528,8 +530,11 @@ def finetune(model_type):
           batch_size=eval_batch_size,
           collate_fn=TtsCollater(),
       )
-  
-  criterion = torch.nn.CrossEntropyLoss() #ignore_index=SEMANTIC_PAD_TOKEN)
+
+  if model_type=='text':
+      criterion = torch.nn.CrossEntropyLoss() #ignore_index=SEMANTIC_PAD_TOKEN)
+  else:
+      criterion = torch.nn.CrossEntropyLoss(ignore_index=COARSE_SEMANTIC_PAD_TOKEN)
   
   # Scheduler and math around the number of training steps.
   overrode_max_train_steps = False
