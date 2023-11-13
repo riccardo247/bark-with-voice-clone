@@ -388,7 +388,7 @@ class TtsDataset_fine(torch.utils.data.Dataset):
     def __init__(self, opt):
         self.path = os.path.dirname(opt['path'])
         self.mode = opt['mode']
-        self.audiopaths_and_text = load_filepaths_and_text(os.path.join(opt['path'] , opt['mode'] + '.txt'))
+        self.audiopaths_and_text = load_filepaths_and_text(os.path.join(opt['path'] , opt['mode'] + '_valid.txt'))
 
     def __getitem__(self, index):
         audiopath_and_text = self.audiopaths_and_text[index]
