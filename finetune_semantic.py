@@ -323,6 +323,7 @@ class TtsCollater():
             'semantic_tokens': torch.stack(semantic_tokens).contiguous(),
             'coarse_tokens': torch.stack(coarse_tokens).contiguous()
         }        
+        
 class TtsDataset_text(torch.utils.data.Dataset):
     def __init__(self, opt):
         self.path = os.path.dirname(opt['path'])
@@ -383,12 +384,51 @@ class TtsCollater_text():
             'input_ids': torch.stack(texts).contiguous(),
             'semantic_tokens': torch.stack(semantic_tokens).contiguous()
         }
+class TtsDataset_fine(torch.utils.data.Dataset):
+    def __init__(self, opt):
+        self.path = os.path.dirname(opt['path'])
+        self.mode = opt['mode']
+        self.audiopaths_and_text = load_filepaths_and_text(os.path.join(opt['path'] , opt['mode'] + '.txt'))
 
+    def __getitem__(self, index):
+        audiopath_and_text = self.audiopaths_and_text[index]
+        audiopath = audiopath_and_text[0]
+
+        tokens = np.load(audiopath.replace('.wav', '.npz').replace('wavs', 'tokens'))
+        fine_tokens = tokens['fine']
+
+        return torch.from_numpy(fine_tokens)
+
+    def __len__(self):
+        return len(self.audiopaths_and_text)
+
+
+class TtsCollater_fine():
+    def __init__(self):
+        pass
+    def __call__(self, batch):
+        max_len = 1024
+        fine_tokens = []
+
+        for fine_tokens_ in batch:
+            if fine_tokens_.shape[1] > max_len:
+                start_idx = np.random.randint(0, fine_tokens_.shape[1] - max_len + 1)
+                fine_tokens_ = fine_tokens_[:, start_idx : start_idx + max_len]
+
+            pad_size = max_len - fine_tokens_.shape[1]
+            fine_tokens_ = F.pad(fine_tokens_, (0, pad_size), value=CODEBOOK_SIZE)
+
+            fine_tokens_ = fine_tokens_.T
+
+            fine_tokens.append(fine_tokens_)
+
+        return {'fine_tokens': torch.stack(fine_tokens).contiguous()}
+        
 def finetune(model_type):
   global max_train_steps
   global num_train_epochs
   global MAX_SEMANTIC_LEN
-  if model_type=='coarse':
+  if model_type in ['coarse','fine']:
       MAX_SEMANTIC_LEN = 256
   accelerator = Accelerator(
       gradient_accumulation_steps=grad_accum,
@@ -508,7 +548,7 @@ def finetune(model_type):
           batch_size=eval_batch_size,
           collate_fn=TtsCollater_text(),
       )
-  else:
+  elif model_type=='coarse':
       print(f"loading TtsDataset for coarse")
       opt_train = {
         'path': dataset_path,
@@ -534,7 +574,32 @@ def finetune(model_type):
           batch_size=eval_batch_size,
           collate_fn=TtsCollater(),
       )
+  elif model_type=='fine':
+      print(f"loading TtsDataset for fine")
+      opt_train = {
+        'path': dataset_path,
+        'mode': 'train',
+        }
 
+      opt_val = {
+        'path': dataset_path,
+        'mode': 'valid',
+        }
+
+      train_dataset = TtsDataset_fine(opt_train)
+      validation_dataset = TtsDataset_fine(opt_val)
+
+      train_dataloader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=train_batch_size,
+        collate_fn=TtsCollater_fine(),
+        )
+
+      validation_dataloader = torch.utils.data.DataLoader(
+        validation_dataset,
+        batch_size=eval_batch_size,
+        collate_fn=TtsCollater_fine(),
+        )
   if model_type=='text':
       criterion = torch.nn.CrossEntropyLoss() #ignore_index=SEMANTIC_PAD_TOKEN)
   else:
@@ -666,7 +731,7 @@ def finetune(model_type):
                     loss = (
                         semantic_loss * num_semantic_logits * semantic_cross_entropy_loss_weight +
                         loss * num_coarse_logits
-                    ) / (num_semantic_logits + num_coarse_logits)
+                    ) / (num_semantic_logits + num_coarse_logits)        
               elif model_type  =='fine':
                     fine_targets_7 = batch['fine_tokens'][:, :, 6]
                     fine_tokens_input_7 = torch.cat([batch['fine_tokens'][:, :, :6], torch.zeros_like(batch['fine_tokens'][:, :, 6:])], dim=2)
