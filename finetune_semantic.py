@@ -72,7 +72,7 @@ lr_warmup_steps = 60
 num_train_epochs = 5
 max_train_steps = None
 max_grad_norm = 1.0
-
+semantic_cross_entropy_loss_weight = 0.0
 seed = 741
 
 
