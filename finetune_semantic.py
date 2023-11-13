@@ -393,8 +393,19 @@ class TtsDataset_fine(torch.utils.data.Dataset):
     def __getitem__(self, index):
         audiopath_and_text = self.audiopaths_and_text[index]
         audiopath = audiopath_and_text[0]
+        # Split the path into a head and a tail
+        head, tail = os.path.split(audiopath)
 
-        tokens = np.load(audiopath.replace('.wav', '.npz').replace('wavs', 'tokens'))
+        # Now split the head part to modify the last directory
+        head, last_dir = os.path.split(head)
+
+        # Append the modified last directory to the head
+        new_last_dir = last_dir + '_tokens'
+        new_head = os.path.join(head, new_last_dir)
+
+        # Join the new head with the tail
+        tokens_path = os.path.join(new_head, tail)
+        tokens = np.load(tokens_path.replace('.wav', '.npz'))
         fine_tokens = tokens['fine']
 
         return torch.from_numpy(fine_tokens)
