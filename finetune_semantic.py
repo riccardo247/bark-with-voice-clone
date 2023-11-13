@@ -387,6 +387,9 @@ class TtsCollater_text():
 def finetune(model_type):
   global max_train_steps
   global num_train_epochs
+  global MAX_SEMANTIC_LEN
+  if model_type=='coarse':
+      MAX_SEMANTIC_LEN = 256
   accelerator = Accelerator(
       gradient_accumulation_steps=grad_accum,
       mixed_precision=mixed_precision,
