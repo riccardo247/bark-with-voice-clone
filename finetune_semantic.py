@@ -205,6 +205,7 @@ def _load_model(ckpt_path, device, use_small=False, model_type="text"):
         raise NotImplementedError()
     model_key = f"{model_type}_small" if use_small or USE_SMALL_MODELS else model_type
     model_info = REMOTE_MODEL_PATHS[model_key]
+    print(f"model loaded: {model_info}")
     if ckpt_path in [None, '']:
         ckpt_path = os.path.join(CACHE_DIR, model_info["file_name"])
     if not os.path.exists(ckpt_path):
@@ -641,6 +642,7 @@ def finetune(model_type):
                   coarse_inputs = batch['coarse_tokens'][:, :-1]
     
                   # Combine the semantic tokens and coarse tokens and feed them into the model.
+                  print(f"inputs shape: semantic shape{batch['semantic_tokens'].shape}, coarse shape: {coarse_inputs.shape}")
                   inputs = torch.cat([batch['semantic_tokens'], coarse_inputs], dim=1)
                   logits = model(inputs, training=True)
     
