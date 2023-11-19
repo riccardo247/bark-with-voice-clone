@@ -512,10 +512,11 @@ def finetune(model_type):
       class CastOutputToFloat(nn.Sequential):
           def forward(self, x):
               return super().forward(x).to(torch.float32)
-  
-      #model.lm_head = CastOutputToFloat(model.lm_head)
-      for i, lm_head in enumerate(model.lm_heads):
-        model.lm_heads[i] = CastOutputToFloat(lm_head)
+      if model_type in ['coarse','text']:
+          model.lm_head = CastOutputToFloat(model.lm_head)
+      else:#fine
+          for i, lm_head in enumerate(model.lm_heads):
+            model.lm_heads[i] = CastOutputToFloat(lm_head)
       model = convert_linear_layer_to_lora(model, lora_module_name,
                                               lora_dim=lora_dim, lora_scaling=lora_scaling,
                                               lora_dropout=lora_dropout)
