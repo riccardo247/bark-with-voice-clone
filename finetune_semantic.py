@@ -334,7 +334,7 @@ class TtsDataset_text(torch.utils.data.Dataset):
     def __getitem__(self, index):
         audiopath_and_text = self.audiopaths_and_text[index]
         audiopath, text = audiopath_and_text[0], audiopath_and_text[1]
-
+        text = "♪ "+text+" ♪"
         input_ids = np.array(_tokenize(self.tokenizer, text)) + TEXT_ENCODING_OFFSET
         input_ids = torch.from_numpy(input_ids).long()
         #tokens = np.load(audiopath.replace('.wav', '.npz').replace('wavs', 'tokens'))
@@ -373,6 +373,7 @@ class TtsCollater_text():
 
         for b in batch:
             text, semantic_tokens_ = b
+            text = "♪ "+text+" ♪"
             text = F.pad(text, (0, max_text_len-len(text)), value=TEXT_PAD_TOKEN)
             semantic_history = torch.from_numpy(np.array([SEMANTIC_PAD_TOKEN] * 256))
             text = torch.cat([text, semantic_history, torch.tensor([SEMANTIC_INFER_TOKEN])])
