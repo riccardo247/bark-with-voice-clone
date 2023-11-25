@@ -336,7 +336,7 @@ class TtsDataset_text(torch.utils.data.Dataset):
         audiopath_and_text = self.audiopaths_and_text[index]
         audiopath, text = audiopath_and_text[0], audiopath_and_text[1]
         text = open(text, 'r', encoding='utf-8').read()
-        text = "♪ "+text+" ♪"
+        text = "[gaga] "+text
         input_ids = np.array(_tokenize(self.tokenizer, text)) + TEXT_ENCODING_OFFSET
         input_ids = torch.from_numpy(input_ids).long()
         #tokens = np.load(audiopath.replace('.wav', '.npz').replace('wavs', 'tokens'))
