@@ -146,6 +146,7 @@ def _download(from_hf_path, file_name, to_local_path):
 
 
 def _tokenize(tokenizer, text):
+    print(f"tokenizer text: {text}")
     return tokenizer.encode(text, add_special_tokens=False)
 
 
@@ -373,7 +374,6 @@ class TtsCollater_text():
 
         for b in batch:
             text, semantic_tokens_ = b
-            text = "♪ "+text+" ♪"
             text = F.pad(text, (0, max_text_len-len(text)), value=TEXT_PAD_TOKEN)
             semantic_history = torch.from_numpy(np.array([SEMANTIC_PAD_TOKEN] * 256))
             text = torch.cat([text, semantic_history, torch.tensor([SEMANTIC_INFER_TOKEN])])
